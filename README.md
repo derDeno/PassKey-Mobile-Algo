@@ -1,4 +1,4 @@
-# PassKey Mobile Algo
+# PassKey Mobile Algorithm
 PoC for unpredictable PassKeys using gyroscope and acceleration sensors
 
 
