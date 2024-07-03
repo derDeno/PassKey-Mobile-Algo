@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random String Generator</title>
+
+    <style>
+        .hideBox {
+            visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Random String Generator</h2>
+    <p>Generate a random string from accelerometer and gyroscope data</p>
+    <br>
+    <button id="start">Start Generating</button>
+    <br>
+
+    <!-- The result password -->
+    <h3>Generated Password: </h3>
+    <p id="randomString"></p>
+
+    <br>
+    <br>
+    <br>
+
+    <!-- Toggle Logs -->
+    <button id="logsBtn">Toggle Logs</button>
+    <p id="logsString" class="hideBox"></p>
+
+    <!-- Live Data for debugging -->
+    <div style="">
+        <h3>Live Data</h3>
+        <table>
+            <tr>
+                <th>Acceleration (m/s^2)</th>
+                <th>Gyroscope (rad/s)</th>
+            </tr>
+            <tr>
+                <td>
+                    <p id="accelerationX">X: </p>
+                    <p id="accelerationY">Y: </p>
+                    <p id="accelerationZ">Z: </p>
+                </td>
+                <td>
+                    <p id="gyroscopeAlpha">Alpha: </p>
+                    <p id="gyroscopeBeta">Beta: </p>
+                    <p id="gyroscopeGamma">Gamma: </p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+
+    <script>
+        let sensorData = []; // Array to store collected sensor data
+        let captureInterval; // Interval for data capture
+        let capturing = false; // Flag to manage data capture
+
+        // Start data capture when the "Start Generating" button is clicked
+        document.getElementById('start').addEventListener('click', function () {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            startDataCapture();
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                startDataCapture();
+            }
+        });
+
+        // toggle logs view
+        let logBox = document.getElementById('logsString');
+        document.getElementById('logsBtn').addEventListener('click', showBox);
+
+        function showBox() {
+            logBox.classList.toggle('hideBox');
+        }
+
+
+        function startDataCapture() {
+            document.getElementById('randomString').textContent = "Move phone...";
+            sensorData = []; // Clear previous data
+            capturing = true;
+            captureInterval = setInterval(captureSensorData, 100); // Capture data every 100 milliseconds for 10 seconds
+            document.getElementById('start').disabled = true; // Disable the button during data capture
+            setTimeout(stopDataCapture, 10000); // Stop data capture after 10 seconds
+        }
+
+        function stopDataCapture() {
+            capturing = false;
+            clearInterval(captureInterval);
+            document.getElementById('start').disabled = false; // Enable the start button
+
+            // Combine the captured data into a string
+            const combinedData = JSON.stringify(sensorData);
+
+            // Generate a random string from the combined data
+            generateRandomString(combinedData).then(randomString => {
+                document.getElementById('randomString').textContent = randomString;
+                document.getElementById('logsString').textContent = combinedData;
+            });
+        }
+
+        // Function to capture sensor data
+        function captureSensorData() {
+            if (!capturing) return;
+
+            window.addEventListener('devicemotion', function motion(event) {
+                if (event.accelerationIncludingGravity) {
+                    const accelerationX = Math.round(event.accelerationIncludingGravity.x);
+                    const accelerationY = Math.round(event.accelerationIncludingGravity.y);
+                    const accelerationZ = Math.round(event.accelerationIncludingGravity.z);
+
+                    document.getElementById('accelerationX').textContent = `X: ${accelerationX} m/s^2`;
+                    document.getElementById('accelerationY').textContent = `Y: ${accelerationY} m/s^2`;
+                    document.getElementById('accelerationZ').textContent = `Z: ${accelerationZ} m/s^2`;
+
+                    sensorData.push({
+                        timestamp: Date.now(),
+                        type: 'acceleration',
+                        x: accelerationX,
+                        y: accelerationY,
+                        z: accelerationZ
+                    });
+                }
+            });
+
+            window.addEventListener('deviceorientation', function orientation(event) {
+                if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+                    const gyroscopeAlpha = Math.round(event.alpha);
+                    const gyroscopeBeta = Math.round(event.beta);
+                    const gyroscopeGamma = Math.round(event.gamma);
+
+                    document.getElementById('gyroscopeAlpha').textContent = `Alpha: ${gyroscopeAlpha} rad/s`;
+                    document.getElementById('gyroscopeBeta').textContent = `Beta: ${gyroscopeBeta} rad/s`;
+                    document.getElementById('gyroscopeGamma').textContent = `Gamma: ${gyroscopeGamma} rad/s`;
+
+                    sensorData.push({
+                        timestamp: Date.now(),
+                        type: 'gyroscope',
+                        alpha: gyroscopeAlpha,
+                        beta: gyroscopeBeta,
+                        gamma: gyroscopeGamma
+                    });
+                }
+            });
+        }
+
+        // Function to generate a random string from data
+        async function generateRandomString(data) {
+            const array = new Uint32Array(14);
+            window.crypto.getRandomValues(array);
+            const randomString = Array.from(array, dec => ('0' + dec.toString(36)).substr(-2)).join('');
+            return randomString; // Combine data and random string
+        }
+    </script>
+</body>
+
+</html>
